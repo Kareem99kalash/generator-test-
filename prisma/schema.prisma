@@ -1,0 +1,76 @@
+// schema.prisma
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model SuperAdmin {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Tenant {
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  platformFeePaid  Boolean  @default(false)
+  isSuspended      Boolean  @default(false)
+  pricePerKwh      Float    @default(0.0)
+  flatAmpRate      Float    @default(0.0)
+  users            User[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model User {
+  id        String   @id @default(uuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  name      String
+  email     String   @unique
+  address   String?
+  nodes     HardwareNode[]
+  invoices  Invoice[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model HardwareNode {
+  id        String   @id @default(uuid())
+  macAddr   String   @unique
+  gatewayId String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    String   @default("ONLINE") // ONLINE, OFFLINE
+  readings  UsageReading[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model UsageReading {
+  id           String   @id @default(uuid())
+  nodeId       String
+  node         HardwareNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+  currentKwh   Float
+  currentAmps  Float
+  timestamp    DateTime @default(now())
+}
+
+model Invoice {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  status      String   @default("UNPAID") // PAID, UNPAID
+  billingDate DateTime @default(now())
+  dueDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
